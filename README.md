@@ -6,6 +6,14 @@ Block NSFW content in ComfyUI workflows.
 ✅ **Fast** - ~0.1s per image, even on CPU  
 ✅ **Accurate** - 95%+ detection rate
 
+## Why?
+
+I needed a fast NSFW detector that doesn't slow down my workflow. Other solutions either:
+- Use large models (accurate but slow)
+- Replace NSFW with censored images (still wastes GPU resources)
+
+I just want to **stop immediately** when NSFW is detected — no wasted compute on unacceptable content.
+
 ## Installation
 
 **ComfyUI Manager:** Search "NSFW Guard" and install.
@@ -27,6 +35,8 @@ Add **NSFW Check (YOLO)** node → Connect image → Done.
 
 - **Safe**: Image passes through
 - **NSFW**: Workflow stops
+
+![Demo](screenshot.jpg)
 
 ## Threshold
 
