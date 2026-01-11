@@ -1,0 +1,8 @@
+# ComfyUI NSFW Guard - Dependencies
+# Install with: pip install -r requirements.txt
+
+# ONNX Runtime for model inference
+onnxruntime>=1.16.0
+
+# Or use onnxruntime-gpu for NVIDIA GPU acceleration
+# onnxruntime-gpu>=1.16.0
