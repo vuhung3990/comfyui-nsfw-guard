@@ -1,5 +1,5 @@
 """
-ComfyUI NSFW Guard - Content moderation nodes for ComfyUI
+ComfyUI NSFW Guard (Viddexa) - Content moderation nodes for ComfyUI
 
 Nodes:
 - NSFWCheck: Checks images for NSFW content and interrupts workflow if detected.
@@ -8,4 +8,5 @@ Nodes:
 
 from .nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
 
-__all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
+

@@ -1,8 +1,7 @@
-# ComfyUI NSFW Guard - Dependencies
+# ComfyUI NSFW Guard (Viddexa) - Dependencies
 # Install with: pip install -r requirements.txt
 
-# ONNX Runtime for model inference
-onnxruntime>=1.16.0
-
-# Or use onnxruntime-gpu for NVIDIA GPU acceleration
-# onnxruntime-gpu>=1.16.0
+moderators
+huggingface_hub>=0.23.0
+transformers>=4.41.0
+safetensors>=0.4.3

@@ -1,66 +1,112 @@
-# ComfyUI NSFW Guard
+# ComfyUI NSFW Guard (Viddexa)
 
-Block NSFW content in ComfyUI workflows.
+Custom ComfyUI nodes for NSFW filtering with Viddexa models.
 
-✅ **Zero Config** - Model auto-downloads on first use  
-✅ **Fast** - ~0.1s per image, even on CPU  
-✅ **Accurate** - 95%+ detection rate
+Supported model repositories:
+- `viddexa/nsfw-detection-2-nano`
+- `viddexa/nsfw-detection-2-mini`
 
-## Why?
+Preferred backend:
+- `moderators` (PyPI)
 
-I needed a fast NSFW detector that doesn't slow down my workflow. Other solutions either:
-- Use large models (accurate but slow)
-- Replace NSFW with censored images (still wastes GPU resources)
-
-I just want to **stop immediately** when NSFW is detected — no wasted compute on unacceptable content.
+Fallback backend:
+- `transformers`
 
 ## Installation
 
-**ComfyUI Manager:** Search "NSFW Guard" and install.
+1. Go to your ComfyUI `custom_nodes` folder:
 
-**Manual:**
 ```bash
 cd ComfyUI/custom_nodes
-git clone https://github.com/vuhung3990/comfyui-nsfw-guard.git
-pip install -r comfyui-nsfw-guard/requirements.txt
 ```
 
-## Usage
+2. Clone this repository:
 
-Add **NSFW Check (YOLO)** node → Connect image → Done.
-
-```
-[Image] → [NSFW Check] → [Save/Preview]
+```bash
+git clone https://github.com/Trunk-png/comfyui-nsfw-guard-viddexa.git
 ```
 
-- **Safe**: Image passes through
-- **NSFW**: Workflow stops
+3. Install dependencies:
 
-![Demo](screenshot.jpg)
-
-## Threshold
-
-| Value | Effect |
-|-------|--------|
-| 0.3 | Strict |
-| 0.5 | Balanced (default) |
-| 0.7 | Lenient |
-
-## API
-
-NSFW blocks return structured JSON via `/history`:
-
-```json
-{"error": {"type": "nsfw_content_detected", "details": {"confidence": 0.95}}}
+```bash
+pip install -r comfyui-nsfw-guard-viddexa/requirements.txt
 ```
 
-## Manual Model Download
+4. Restart ComfyUI.
 
-If auto-download fails, manually download and place in `ComfyUI/models/nsfw/`:
+## NSFW Policy
 
-- [Model](https://huggingface.co/Falconsai/nsfw_image_detection/resolve/main/falconsai_yolov9_nsfw_model_quantized.pt)
-- [Labels](https://huggingface.co/Falconsai/nsfw_image_detection/resolve/main/labels.json)
+- Blocked classes: `porn`, `hentai`, `sexy`
+- Allowed classes: `safe`, `drawing`
 
-## Credits
+When NSFW is detected, the node:
+- sends `nsfw_guard.content_blocked`
+- calls `interrupt_processing(True)`
+- raises an error with type `nsfw_content_detected`
 
-Model: [Falconsai/nsfw_image_detection](https://huggingface.co/Falconsai/nsfw_image_detection)
+## Nodes and Images
+
+### 1) **NSFW Load Model (HF)**
+
+![NSFW Load Model](load-model.png)
+
+What this node does:
+- Loads one selected model (`nano` or `mini`)
+- Outputs `NSFW_GUARD_MODEL`
+- Lets you reuse the same loaded model across multiple check nodes
+
+### 2) **NSFW Check (HF, Shared Model)**
+
+![NSFW Check Node](node-check.png)
+
+What this node does:
+- Takes `nsfw_model` from **NSFW Load Model (HF)**
+- Takes `image` input
+- Optional input: `block_policy` from policy nodes
+- Classifies the image and blocks if predicted class is `porn`, `hentai`, or `sexy`
+- Passes image through if class is `safe` or `drawing`
+
+### 3) **NSFW Check (HF Classifier)** (single node)
+
+![Load And Check In One Node](load-model-and-check.png)
+
+What this node does:
+- Combines model loading + NSFW check in one node
+- Simpler to use for one check point
+- For multi-point checking (input + output), the shared-model flow is more efficient
+
+## Recommended Workflow (Load Once, Check Multiple Times)
+
+```text
+                 +-> [NSFW Check (HF, Shared Model)] -> (input-side check)
+[NSFW Load Model]
+                 +-> [NSFW Check (HF, Shared Model)] -> (output-side check)
+```
+
+This loads the model once and reuses it.
+
+## Extra Policy Nodes
+
+### NSFW Filter Policy (Level 1-4)
+
+Level mapping:
+- Level 1: block `porn`
+- Level 2: block `porn`, `hentai`
+- Level 3: block `porn`, `hentai`, `sexy`
+- Level 4: block `porn`, `hentai`, `sexy`, `drawing`
+
+### NSFW Filter Policy (Label Table)
+
+Available labels:
+- `porn`
+- `hentai`
+- `sexy`
+- `drawing`
+- `normal`
+
+You can select one or multiple labels to block, then connect the output to `block_policy` on check nodes.
+
+## Reference of model check NSFW
+
+- [viddexa/nsfw-detection-2-mini](https://huggingface.co/viddexa/nsfw-detection-2-mini)
+- [viddexa/nsfw-detection-2-nano](https://huggingface.co/viddexa/nsfw-detection-2-nano)
