@@ -524,25 +524,50 @@ class NSFWCheck:
 
 
 class NSFWLoadModel:
-    """Loads NSFW model once and outputs a shared model bundle."""
+    """Loads NSFW model and builds filter policy in one node."""
 
     @classmethod
     def INPUT_TYPES(cls):
         return {
             "required": {
                 "model_repo": (MODEL_OPTIONS, {"default": MODEL_OPTIONS[0]}),
+                "porn": ("BOOLEAN", {"default": True}),
+                "hentai": ("BOOLEAN", {"default": True}),
+                "sexy": ("BOOLEAN", {"default": True}),
+                "drawing": ("BOOLEAN", {"default": False}),
+                "normal": ("BOOLEAN", {"default": False}),
             }
         }
 
-    RETURN_TYPES = ("NSFW_GUARD_MODEL",)
-    RETURN_NAMES = ("nsfw_model",)
+    RETURN_TYPES = ("NSFW_GUARD_MODEL", "NSFW_BLOCK_POLICY")
+    RETURN_NAMES = ("nsfw_model", "block_policy")
     FUNCTION = "load_model"
     CATEGORY = "safety"
 
-    def load_model(self, model_repo: str):
+    def load_model(
+        self,
+        model_repo: str,
+        porn: bool = True,
+        hentai: bool = True,
+        sexy: bool = True,
+        drawing: bool = False,
+        normal: bool = False,
+    ):
         checker = NSFWCheck()
         checker._ensure_model(model_repo)
-        return ((model_repo, NSFWCheck._cache[model_repo]),)
+        blocked = []
+        if porn:
+            blocked.append("porn")
+        if hentai:
+            blocked.append("hentai")
+        if sexy:
+            blocked.append("sexy")
+        if drawing:
+            blocked.append("drawing")
+        if normal:
+            blocked.append("normal")
+        block_policy = {"blocked_labels": blocked, "mode": "manual"}
+        return ((model_repo, NSFWCheck._cache[model_repo], block_policy), block_policy)
 
 
 class NSFWCheckWithModel:
@@ -566,12 +591,15 @@ class NSFWCheckWithModel:
     CATEGORY = "safety"
 
     def check_nsfw(self, nsfw_model, image: torch.Tensor, block_policy=None):
-        if not isinstance(nsfw_model, tuple) or len(nsfw_model) != 2:
+        if not isinstance(nsfw_model, tuple) or len(nsfw_model) not in (2, 3):
             raise RuntimeError("Invalid NSFW_GUARD_MODEL. Use NSFW Load Model (HF) output.")
 
-        _, model_bundle = nsfw_model
+        model_bundle = nsfw_model[1]
         if not isinstance(model_bundle, dict) or "backend" not in model_bundle:
             raise RuntimeError("Invalid NSFW_GUARD_MODEL payload.")
+        bundled_policy = nsfw_model[2] if len(nsfw_model) == 3 else None
+        if block_policy is None and isinstance(bundled_policy, dict):
+            block_policy = bundled_policy
         blocked_labels = _blocked_labels_from_policy(block_policy)
 
         checker = NSFWCheck()
@@ -605,7 +633,7 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "NSFWCheck": "NSFW Check (HF Classifier)",
-    "NSFWLoadModel": "NSFW Load Model (HF)",
+    "NSFWLoadModel": "NSFW Load Model + Filter Policy (HF)",
     "NSFWCheckWithModel": "NSFW Check (HF, Shared Model)",
     "NSFWFilterLevelPolicy": "NSFW Filter Policy (Level 1-4)",
     "NSFWFilterLabelPolicy": "NSFW Filter Policy (Label Table)",
